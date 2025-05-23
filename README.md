@@ -1,18 +1,19 @@
-# Welcome to your CDK Java project!
+# 📊 URL Stats Service – Infrastructure as Code with AWS CDK (Java)
 
-This is a blank project for CDK development with Java.
+This project provides an **Infrastructure as Code (IaC)** solution for deploying the **URL Stats Service**, a microservice responsible for collecting and serving usage statistics for shortened URLs. The infrastructure is implemented using the **AWS Cloud Development Kit (CDK)** in **Java**, enabling scalable, maintainable, and repeatable deployments on AWS.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## 🧩 Part of a Microservices-Based URL Shortener Platform
 
-It is a [Maven](https://maven.apache.org/) based project, so you can open this project with any Maven compatible Java IDE to build and run tests.
+The **URL Stats Service** is one of several components that make up the larger **URL Shortener Platform**, a modern, microservices-based solution for URL shortening, tracking, and analytics. The complete platform includes:
 
-## Useful commands
+- 🔗 [**URL Shortener Service**](https://github.com/dobrevd/url_shortener_service) — The core backend service for creating and resolving shortened URLs.
+- 📈 [**URL Audit Service**](https://github.com/dobrevd/url-audit-service) — Responsible for logging and analyzing user interactions for auditing purposes.
+- 🖥️ [**Frontend Application**](https://github.com/dobrevd/url-shortener-frontend) — A user-friendly web interface for interacting with the system.
+- 📊 **URL Stats Service** — A microservice (currently under development) for providing real-time and historical statistics on URL usage.
 
- * `mvn package`     compile and run tests
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
+## 🚀 Key Features
 
-Enjoy!
+- Infrastructure defined entirely in Java using AWS CDK
+- Designed for scalability and high availability on AWS
+- Easily extendable as the Stats Service evolves
+- Aligns with modern DevOps practices and microservices architecture
