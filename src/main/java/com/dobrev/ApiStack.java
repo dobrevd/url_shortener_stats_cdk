@@ -12,6 +12,7 @@ import software.amazon.awscdk.services.apigateway.IntegrationType;
 import software.amazon.awscdk.services.apigateway.JsonWithStandardFieldProps;
 import software.amazon.awscdk.services.apigateway.LogGroupLogDestination;
 import software.amazon.awscdk.services.apigateway.MethodLoggingLevel;
+import software.amazon.awscdk.services.apigateway.MethodOptions;
 import software.amazon.awscdk.services.apigateway.Resource;
 import software.amazon.awscdk.services.apigateway.RestApi;
 import software.amazon.awscdk.services.apigateway.RestApiProps;
@@ -22,6 +23,9 @@ import software.amazon.awscdk.services.logs.LogGroup;
 import software.amazon.awscdk.services.logs.LogGroupProps;
 import software.amazon.awscdk.services.logs.RetentionDays;
 import software.constructs.Construct;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class ApiStack extends Stack {
     public ApiStack(final Construct scope, final String id, final StackProps props,
@@ -62,10 +66,9 @@ public class ApiStack extends Stack {
 
     private void createStatsResource(RestApi restApi, ApiStackProps apiStackProps) {
         Resource resource = restApi.getRoot().addResource("stats");
-
-        resource.addMethod("GET", new Integration(IntegrationProps.builder()
+        resource.addMethod("POST", new Integration(IntegrationProps.builder()
                 .type(IntegrationType.HTTP_PROXY)
-                .integrationHttpMethod("GET")
+                .integrationHttpMethod("POST")
                 .uri("http://" + apiStackProps.networkLoadBalancer().getLoadBalancerDnsName() +
                         ":8080/api/stats")
                 .options(IntegrationOptions.builder()
@@ -73,9 +76,30 @@ public class ApiStack extends Stack {
                         .connectionType(ConnectionType.VPC_LINK)
                         .build())
                 .build()));
+
+        Map<String, String> eventsIdIntegrationParameters = new HashMap<>();
+        eventsIdIntegrationParameters.put("integration.request.path.userId", "method.request.path.userId");
+
+        Map<String, Boolean> eventsIdMethodParameters = new HashMap<>();
+        eventsIdMethodParameters.put("method.request.path.userId", true);
+
+        Resource eventsIdResource = resource.addResource("{userId}");
+        eventsIdResource.addMethod("GET", new Integration(
+                        IntegrationProps.builder()
+                                .type(IntegrationType.HTTP_PROXY)
+                                .integrationHttpMethod("GET")
+                                .uri("http://" + apiStackProps.networkLoadBalancer().getLoadBalancerDnsName() +
+                                        ":8080/api/stats/{userId}")
+                                .options(IntegrationOptions.builder()
+                                        .vpcLink(apiStackProps.vpcLink())
+                                        .connectionType(ConnectionType.VPC_LINK)
+                                        .requestParameters(eventsIdIntegrationParameters)
+                                        .build())
+                                .build()),
+                MethodOptions.builder()
+                        .requestParameters(eventsIdMethodParameters)
+                        .build());
     }
-
-
 }
 
 record ApiStackProps(
