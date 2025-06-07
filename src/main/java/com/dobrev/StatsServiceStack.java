@@ -35,20 +35,38 @@ import software.amazon.awscdk.services.elasticloadbalancingv2.BaseNetworkListene
 import software.amazon.awscdk.services.elasticloadbalancingv2.HealthCheck;
 import software.amazon.awscdk.services.elasticloadbalancingv2.NetworkListener;
 import software.amazon.awscdk.services.elasticloadbalancingv2.NetworkLoadBalancer;
+import software.amazon.awscdk.services.iam.Effect;
+import software.amazon.awscdk.services.iam.PolicyStatement;
+import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.logs.LogGroup;
 import software.amazon.awscdk.services.logs.LogGroupProps;
 import software.amazon.awscdk.services.logs.RetentionDays;
+import software.amazon.awscdk.services.sns.Topic;
+import software.amazon.awscdk.services.sns.TopicProps;
+import software.amazon.awscdk.services.sns.subscriptions.SqsSubscription;
+import software.amazon.awscdk.services.sqs.DeadLetterQueue;
+import software.amazon.awscdk.services.sqs.Queue;
+import software.amazon.awscdk.services.sqs.QueueEncryption;
+import software.amazon.awscdk.services.sqs.QueueProps;
 import software.constructs.Construct;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
 public class StatsServiceStack extends Stack {
+    private final Topic urlEventsTopic;
+
     public StatsServiceStack(final Construct construct, final String id, final StackProps props,
                              StatsServiceProps statsServiceProps) {
         super(construct, id, props);
+
+        this.urlEventsTopic = new Topic(this, "UrlEventsTopic", TopicProps.builder()
+                .displayName("URL events topic")
+                .topicName("url-events")
+                .build());
 
         Table urlEventsDdb = new Table(this, "UrlEventsDdb",
                 TableProps.builder()
@@ -63,6 +81,28 @@ public class StatsServiceStack extends Stack {
                         .writeCapacity(1)
                         .build());
 
+        Queue urlEventsDlq = new Queue(this, "UrlEventsDlq",
+                QueueProps.builder()
+                        .queueName("url-events-dlq")
+                        .retentionPeriod(Duration.days(8))
+                        .enforceSsl(false)
+                        .encryption(QueueEncryption.UNENCRYPTED)
+                        .build()
+        );
+
+        Queue urlEventsQueue = new Queue(this, "UrlEventsQueue",
+                QueueProps.builder()
+                        .queueName("url-events")
+                        .enforceSsl(false)
+                        .encryption(QueueEncryption.UNENCRYPTED)
+                        .deadLetterQueue(DeadLetterQueue.builder()
+                                .queue(urlEventsDlq)
+                                .maxReceiveCount(2)
+                                .build())
+                        .build()
+        );
+        urlEventsTopic.addSubscription(new SqsSubscription(urlEventsQueue));
+
         FargateTaskDefinition fargateTaskDefinition = new FargateTaskDefinition(this, "TaskDefinition",
                 FargateTaskDefinitionProps.builder()
                         .family("stats-service")
@@ -70,14 +110,16 @@ public class StatsServiceStack extends Stack {
                         .memoryLimitMiB(1024)
                         .build());
         urlEventsDdb.grantReadWriteData(fargateTaskDefinition.getTaskRole());
+        urlEventsQueue.grantConsumeMessages(fargateTaskDefinition.getTaskRole());
 
+        LogGroup logGroup = new LogGroup(this, "LogGroup",
+                LogGroupProps.builder()
+                        .logGroupName("StatsService")
+                        .removalPolicy(RemovalPolicy.DESTROY)
+                        .retention(RetentionDays.ONE_MONTH)
+                        .build());
         AwsLogDriver logDriver = new AwsLogDriver(AwsLogDriverProps.builder()
-                .logGroup(new LogGroup(this, "LogGroup",
-                        LogGroupProps.builder()
-                                .logGroupName("StatsService")
-                                .removalPolicy(RemovalPolicy.DESTROY)
-                                .retention(RetentionDays.ONE_MONTH)
-                                .build()))
+                .logGroup(logGroup)
                 .streamPrefix("StatsService")
                 .build());
 
@@ -85,6 +127,8 @@ public class StatsServiceStack extends Stack {
         envVariables.put("SERVER_PORT", "8080");
         envVariables.put("AWS_URLEVENTSDDB_NAME", urlEventsDdb.getTableName());
         envVariables.put("AWS_REGION", this.getRegion());
+        envVariables.put("SPRING_PROFILES_ACTIVE", "prod");
+        envVariables.put("AWS_SQS_QUEUE_URLEVENT_URL", urlEventsQueue.getQueueUrl());
 
         fargateTaskDefinition.addContainer("StatsServiceContainer",
                 ContainerDefinitionOptions.builder()
@@ -117,6 +161,16 @@ public class StatsServiceStack extends Stack {
                         .build());
         statsServiceProps.repository().grantPull(Objects.requireNonNull(fargateTaskDefinition.getExecutionRole()));
         fargateService.getConnections().getSecurityGroups().get(0).addIngressRule(Peer.anyIpv4(), Port.tcp(8080));
+
+        Role execRole = (Role) fargateTaskDefinition.obtainExecutionRole();
+        execRole.addToPolicy(PolicyStatement.Builder.create()
+                .effect(Effect.ALLOW)
+                .actions(Arrays.asList(
+                        "logs:CreateLogStream",
+                        "logs:PutLogEvents"
+                ))
+                .resources(Collections.singletonList(logGroup.getLogGroupArn()))
+                .build());
 
         applicationListener.addTargets("StatsServiceAlbTarget",
                 AddApplicationTargetsProps.builder()
@@ -157,6 +211,10 @@ public class StatsServiceStack extends Stack {
                         ))
                         .build()
         );
+    }
+
+    public Topic getUrlEventsTopic() {
+        return urlEventsTopic;
     }
 }
 

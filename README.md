@@ -9,7 +9,7 @@ The **URL Stats Service** is one of several components that make up the larger *
 - 🔗 [**URL Shortener Service**](https://github.com/dobrevd/url_shortener_service) — The core backend service for creating and resolving shortened URLs.
 - 📈 [**URL Audit Service**](https://github.com/dobrevd/url-audit-service) — Responsible for logging and analyzing user interactions for auditing purposes.
 - 🖥️ [**Frontend Application**](https://github.com/dobrevd/url-shortener-frontend) — A user-friendly web interface for interacting with the system.
-- 📊 **URL Stats Service** — A microservice (currently under development) for providing real-time and historical statistics on URL usage.
+- 📊 [**URL Stats Service**](https://github.com/dobrevd/url_stats_service) — A microservice (currently under development) for providing real-time and historical statistics on URL usage.
 
 ## 🚀 Key Features
 
