@@ -4,6 +4,8 @@ import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.services.applicationautoscaling.EnableScalingProps;
+import software.amazon.awscdk.services.ecs.CpuUtilizationScalingProps;
 import software.amazon.awscdk.services.dynamodb.Attribute;
 import software.amazon.awscdk.services.dynamodb.AttributeType;
 import software.amazon.awscdk.services.dynamodb.BillingMode;
@@ -25,6 +27,7 @@ import software.amazon.awscdk.services.ecs.FargateTaskDefinitionProps;
 import software.amazon.awscdk.services.ecs.LoadBalancerTargetOptions;
 import software.amazon.awscdk.services.ecs.PortMapping;
 import software.amazon.awscdk.services.ecs.Protocol;
+import software.amazon.awscdk.services.ecs.ScalableTaskCount;
 import software.amazon.awscdk.services.elasticloadbalancingv2.AddApplicationTargetsProps;
 import software.amazon.awscdk.services.elasticloadbalancingv2.AddNetworkTargetsProps;
 import software.amazon.awscdk.services.elasticloadbalancingv2.ApplicationListener;
@@ -211,6 +214,18 @@ public class StatsServiceStack extends Stack {
                         ))
                         .build()
         );
+
+        ScalableTaskCount scalableTaskCount = fargateService.autoScaleTaskCount(
+                EnableScalingProps.builder()
+                        .maxCapacity(4)
+                        .minCapacity(2)
+                        .build());
+        scalableTaskCount.scaleOnCpuUtilization("StatsServiceAutoScaling",
+                CpuUtilizationScalingProps.builder()
+                        .targetUtilizationPercent(80)
+                        .scaleInCooldown(Duration.seconds(60))
+                        .scaleOutCooldown(Duration.seconds(60))
+                        .build());
     }
 
     public Topic getUrlEventsTopic() {
