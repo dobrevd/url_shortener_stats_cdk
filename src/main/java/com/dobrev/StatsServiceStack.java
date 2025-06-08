@@ -39,6 +39,7 @@ import software.amazon.awscdk.services.elasticloadbalancingv2.HealthCheck;
 import software.amazon.awscdk.services.elasticloadbalancingv2.NetworkListener;
 import software.amazon.awscdk.services.elasticloadbalancingv2.NetworkLoadBalancer;
 import software.amazon.awscdk.services.iam.Effect;
+import software.amazon.awscdk.services.iam.ManagedPolicy;
 import software.amazon.awscdk.services.iam.PolicyStatement;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.logs.LogGroup;
@@ -130,8 +131,10 @@ public class StatsServiceStack extends Stack {
         envVariables.put("SERVER_PORT", "8080");
         envVariables.put("AWS_URLEVENTSDDB_NAME", urlEventsDdb.getTableName());
         envVariables.put("AWS_REGION", this.getRegion());
-        envVariables.put("SPRING_PROFILES_ACTIVE", "prod");
         envVariables.put("AWS_SQS_QUEUE_URLEVENT_URL", urlEventsQueue.getQueueUrl());
+        envVariables.put("AWS_XRAY_DAEMON_ADDRESS", "0.0.0.0:2000");
+        envVariables.put("AWS_XRAY_CONTEXT_MISSING","IGNORE_ERROR");
+        envVariables.put("AWS_XRAY_TRACING_NAME","statsservice");
 
         fargateTaskDefinition.addContainer("StatsServiceContainer",
                 ContainerDefinitionOptions.builder()
@@ -146,6 +149,26 @@ public class StatsServiceStack extends Stack {
                         .cpu(384)
                         .memoryLimitMiB(896)
                         .build());
+
+        fargateTaskDefinition.addContainer("xray", ContainerDefinitionOptions.builder()
+                .image(ContainerImage.fromRegistry("public.ecr.aws/xray/aws-xray-daemon:latest"))
+                .containerName("XRayStatsService")
+                .logging(new AwsLogDriver(AwsLogDriverProps.builder()
+                        .logGroup(new LogGroup(this,"XRayLogGroup", LogGroupProps.builder()
+                                .logGroupName("XRayStatsService")
+                                .removalPolicy(RemovalPolicy.DESTROY)
+                                .retention(RetentionDays.ONE_MONTH)
+                                .build()))
+                        .streamPrefix("XRayStatsService")
+                        .build()))
+                .portMappings(Collections.singletonList(PortMapping.builder()
+                        .containerPort(2000)
+                        .protocol(Protocol.UDP)
+                        .build()))
+                .cpu(128)
+                .memoryLimitMiB(128)
+                .build());
+        fargateTaskDefinition.getTaskRole().addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName("AWSXrayWriteOnlyAccess"));
 
         ApplicationListener applicationListener = statsServiceProps.applicationLoadBalancer()
                 .addListener("StatsServiceAlbListener", ApplicationListenerProps.builder()
