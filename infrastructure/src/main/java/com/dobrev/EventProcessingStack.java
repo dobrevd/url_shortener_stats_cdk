@@ -51,9 +51,9 @@ public class EventProcessingStack extends Stack {
                         .build());
 
         urlEventsDdb.addGlobalSecondaryIndex(GlobalSecondaryIndexProps.builder()
-                .indexName("userIdIdx")
+                .indexName("hashTimestampIdx")
                 .partitionKey(Attribute.builder()
-                        .name("userId")
+                        .name("shortUrlHash")
                         .type(AttributeType.STRING)
                         .build())
                 .sortKey(Attribute.builder()
@@ -63,9 +63,9 @@ public class EventProcessingStack extends Stack {
                 .build());
 
         urlEventsDdb.addGlobalSecondaryIndex(GlobalSecondaryIndexProps.builder()
-                .indexName("hashEventTypeIdx")
+                .indexName("userIdEventTypeIdx")
                 .partitionKey(Attribute.builder()
-                        .name("shortUrlHash")
+                        .name("userId")
                         .type(AttributeType.STRING)
                         .build())
                 .sortKey(Attribute.builder()

@@ -38,7 +38,7 @@
             <version>1.2.3</version>
         </dependency>
 
-        <!-- AWS SDK v2 (DynamoDB + Lambda) -->
+        <!-- AWS SDK v2 (DynamoDB + Lambda + S3) -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>dynamodb-enhanced</artifactId>
