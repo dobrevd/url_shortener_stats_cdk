@@ -1,6 +1,6 @@
 package com.dobrev.util;
 
-import handler.UrlEvent;
+import com.dobrev.handler.UrlEvent;
 
 import java.util.Arrays;
 import java.util.List;

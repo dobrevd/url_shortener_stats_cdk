@@ -1,4 +1,4 @@
-package handler;
+package com.dobrev.handler;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;

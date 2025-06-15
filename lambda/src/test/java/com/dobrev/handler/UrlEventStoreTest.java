@@ -1,7 +1,5 @@
 package com.dobrev.handler;
 
-import handler.UrlEvent;
-import handler.UrlEventStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

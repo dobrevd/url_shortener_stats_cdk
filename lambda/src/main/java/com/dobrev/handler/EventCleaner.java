@@ -1,4 +1,4 @@
-package handler;
+package com.dobrev.handler;
 
 import lombok.RequiredArgsConstructor;
 import software.amazon.awssdk.annotations.NotNull;

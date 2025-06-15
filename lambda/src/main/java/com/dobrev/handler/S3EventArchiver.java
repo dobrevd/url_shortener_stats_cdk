@@ -1,4 +1,4 @@
-package handler;
+package com.dobrev.handler;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;

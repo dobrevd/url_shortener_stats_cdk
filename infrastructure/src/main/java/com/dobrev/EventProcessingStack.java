@@ -107,5 +107,6 @@ public class EventProcessingStack extends Stack {
                         .build()))
                 .targets(List.of(new LambdaFunction(lambda)))
                 .build());
+        rule.getNode().addDependency(lambda);
     }
 }
